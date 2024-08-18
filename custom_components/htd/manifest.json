@@ -1,0 +1,22 @@
+{
+  "domain": "htd",
+  "documentation": "https://www.github.com/hikirsch/htd-home-assistant",
+  "issue_tracker": "https://www.github.com/hikirsch/htd-home-assistant/issues",
+  "codeowners": [
+    "@hikirsch"
+  ],
+  "name": "Home Theater Direct",
+  "version": "2.0.0",
+  "iot_class": "local_polling",
+  "integration_type": "hub",
+  "dependencies": [],
+  "requirements": [
+    "htd_client==0.0.3"
+  ],
+  "config_flow": true,
+  "dhcp": [
+    {
+      "macaddress": "A44F29"
+    }
+  ]
+}

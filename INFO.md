@@ -2,11 +2,13 @@
 
 [![GitHub Release][releases-shield]][releases]
 
-![HTD MC/MCA-66 Series](logo-htd.png)
+![HTD](logo-htd.png)
 
-This is an integration for Home Assistant that provides a media player for the MC/MCA-66 amplifier.
+This integration adds support for the HTD line of Whole House Audio for Home
+Assistant. This integration currently only support the MC/MCA-66 models with
+planned future plans to support the Lync models as well.
 
-See [README](https://github.com/hikirsch/htd_mc-home-assistant/blob/main/README.md) for usage instructions
+See [README](https://github.com/hikirsch/htd-home-assistant/blob/main/README.md) for usage instructions
 
-[releases-shield]: https://img.shields.io/github/release/hikirsch/htd_mc-home-assistant
-[releases]: https://github.com/hikirsch/htd_mc-home-assistant
+[releases-shield]: https://img.shields.io/github/release/hikirsch/htd-home-assistant
+[releases]: https://github.com/hikirsch/htd-home-assistant

@@ -14,10 +14,10 @@ jobs:
 
       - name: Get manifest.json info
         id: manifest-info
-        run: echo "::set-output name=version::$(jq -r '.version' custom_components/htd_mc/manifest.json)"
+        run: echo "::set-output name=version::$(jq -r '.version' custom_components/htd/manifest.json)"
 
       - name: Package
-        run: cd custom_components/htd_mc && zip -r ../../htd_mc.zip * && cd ../..
+        run: cd custom_components/htd && zip -r ../../htd.zip * && cd ../..
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -27,4 +27,4 @@ jobs:
           name: v${{ steps.manifest-info.outputs.version }}
           tag_name: v${{ steps.manifest-info.outputs.version }}
           draft: true
-          files: htd_mc.zip
+          files: htd.zip

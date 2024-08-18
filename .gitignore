@@ -1,5 +1,6 @@
 .vscode/
 __pycache__/
-ve/
+venv/
+venv2/
 .idea
 hass-working-directory

@@ -1,7 +1,8 @@
-# HTD MC/MCA-66 Series Integration for Home Assistant
+# HTD Integration for Home Assistant
 
-This integration will add the HTD MC/MCA-66 Whole House Audio into Home
-Assistant. This integration depends on
+This integration adds support for the HTD line of Whole House Audio for Home
+Assistant. This integration currently only support the MC/MCA-66 models with
+planned future plans to support the Lync models as well. 
 
 ## Installation steps
 
@@ -9,46 +10,18 @@ Assistant. This integration depends on
 
 Easiest installation is via [HACS](https://hacs.xyz/):
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hikirsch&repository=htd_mc-home-assistant&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hikirsch&repository=htd-home-assistant&category=integration)
 
 `HACS -> Integrations -> Explore & Add Repositories -> HTD MC/MCA-66 Series`
 
 ### Manually
 
-Download the 4 files (`__init__.py`, `htd_mc.py`, `media_player.py`,
-`manifest.json`) from this repo and place them into your
-`custom_components/htd_mc` folder.
+Download all the files from this repo and upload as
+`custom_components/htd` folder.
 
-### Configure
+### Configuration
 
-Update your configuration.yaml with at minimally the host.
-
- ```yaml
- htd_mc:
-   - host: 192.168.1.123
-     port: 10006
-     zones:
-       - Kitchen
-       - Dining Room
-       - Living Room
-     sources:
-       - Chrome Cast
-       - FM/AM
-   - host: 192.168.xxx.xxx
-```
-
-### Configuration options
-
-| Name                    | Default Value | Description                                                               |
-|-------------------------|---------------|---------------------------------------------------------------------------|
-| host                    | (none)        | IP address/host of the gateway                                            |
-| port                    | 10006         | Port number                                                               |
-| zones                   | Zone X        | A list of named zones                                                     |
-| sources                 | Source X      | A list of named sources                                                   |
-| update_volume_on_change | false         | Show tick updates on volume change                                        |
-| retry_attempts          | 5             | how many times to try and re-run the command if it fails                  |
-| socket_timeout          | 1             | How long, in seconds, the client should wait before timing out.           |
-| command_delay           | 100           | How long, in milliseconds, should the client throttle inbetween commands. |
+Configure using the new config flow!
 
 ## Code Credits
 

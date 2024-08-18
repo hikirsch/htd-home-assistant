@@ -1,4 +1,9 @@
-### 1.2.0 - TBD 
+### 2.0.0 - TBD
+- new HTD domain, 
+- support ConfigFlow
+- support AutoDiscovery
+
+### 1.2.0 - July  11, 2024
 - Upgrading to HASS 2026.6.4
 - New client. Better support for volume changes and bass, treble and balance. ([#5](https://github.com/hikirsch/htd_mc-home-assistant/issues/5)).
 
@@ -11,4 +16,6 @@
 - April 7, 2020 - Changed Icon and added unique_id (allows editing name and entity ID in Home Assistant UI)
 - April 8, 2020 - Support multiple MCAs
 - April 6, 2020 - Initial release
+
+
 

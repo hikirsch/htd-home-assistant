@@ -1,7 +1,7 @@
 {
-  "name": "HTD MC/MCA-66 Series Integration",
-  "filename": "htd_mc.zip",
-  "homeassistant": "2024.1.0",
+  "name": "HTD Integration",
+  "filename": "htd.zip",
+  "homeassistant": "2024.6.4",
   "render_readme": false,
   "zip_release": true
 }
