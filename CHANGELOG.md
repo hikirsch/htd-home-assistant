@@ -4,7 +4,7 @@
 - support AutoDiscovery
 
 ### 1.2.0 - July  11, 2024
-- Upgrading to HASS 2026.6.4
+- Upgrading to HASS 2024.6.4
 - New client. Better support for volume changes and bass, treble and balance. ([#5](https://github.com/hikirsch/htd_mc-home-assistant/issues/5)).
 
 ### 1.1.0 - March 31, 2024 
