@@ -2,7 +2,7 @@
 
 ![HTD](logo-htd.png)
 
-This integration adds support for the Home Theater Direct line of Whole House Audio to Home Assistant.
+This integration adds support for Home Theater Direct's line of Whole House Audio to Home Assistant.
 
 Currently, it supports the following models.
 - MC/MCA-66
