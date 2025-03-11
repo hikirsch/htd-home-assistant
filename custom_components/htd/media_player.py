@@ -41,7 +41,6 @@ _LOGGER = logging.getLogger(__name__)
 
 type HtdClientConfigEntry = ConfigEntry[BaseClient]
 
-
 async def async_setup_platform(hass, _, async_add_entities, __=None):
     htd_configs = hass.data[DOMAIN]
     entities = []
@@ -72,7 +71,7 @@ async def async_setup_platform(hass, _, async_add_entities, __=None):
     return True
 
 
-async def async_setup_entry(_: HomeAssistant, config_entry: HtdClientConfigEntry, async_add_entities):
+async def async_setup_entry(hass: HomeAssistant, config_entry: HtdClientConfigEntry, async_add_entities):
     entities = []
 
     client = config_entry.runtime_data

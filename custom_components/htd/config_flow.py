@@ -29,6 +29,14 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
     host: str = None
     port: int = HtdConstants.DEFAULT_PORT
     unique_id: str = None
+    existing_config_entry = None
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        self.existing_config_entry = self._get_reconfigure_entry()
+        self.unique_id = self.existing_config_entry.unique_id
+        return await self.async_step_custom_connection()
 
     async def async_step_dhcp(
         self, discovery_info: DhcpServiceInfo
@@ -42,9 +50,9 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
         if model_info is None:
             return self.async_abort(reason="unknown_model")
 
-        _LOGGER.info("Model identified as: %s" % model_info)
-
         unique_id = "htd-%s" % discovery_info.macaddress
+        _LOGGER.info("Device %s identified as: %s" % (unique_id, model_info))
+
 
         await self.async_set_unique_id(unique_id)
 
@@ -56,6 +64,8 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
         }
 
         self._abort_if_unique_id_configured()
+
+        _LOGGER.info("Device %s can be configured: %s" % (unique_id, model_info))
 
         self.context["title_placeholders"] = {
             CONF_NAME: f"{model_info["friendly_name"]} ({host})",
@@ -103,7 +113,7 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id='user',
-            data_schema=get_connection_settings_schema(),
+            data_schema=get_connection_settings_schema(self.existing_config_entry),
             errors=errors
         )
 
@@ -120,10 +130,18 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_UNIQUE_ID: self.unique_id,
             }
 
+            if self.existing_config_entry is not None:
+                return self.async_update_reload_and_abort(
+                    title=user_input[CONF_DEVICE_NAME],
+                    entry=self.existing_config_entry,
+                    data=config_entry,
+                    options=self.existing_config_entry.options,
+                )
+
             return self.async_create_entry(
                 title=user_input[CONF_DEVICE_NAME],
                 data=config_entry,
-                options={}
+                options=self.existing_config_entry.options if self.existing_config_entry else {},
             )
 
         network_address = (self.host, self.port)
@@ -154,7 +172,7 @@ class HtdOptionsFlowHandler(OptionsFlowWithConfigEntry):
 
         return self.async_show_form(
             step_id='init',
-            data_schema=get_connection_settings_schema(self.config_entry)
+            data_schema=get_connection_settings_schema(self.config_entry.data)
         )
 
 

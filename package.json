@@ -1,0 +1,33 @@
+{
+  "name": "htd-home-assistant",
+  "version": "1.0.0",
+  "description": "![HTD](logo-htd.png)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hikirsch/htd-home-assistant.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hikirsch/htd-home-assistant/issues"
+  },
+  "homepage": "https://github.com/hikirsch/htd-home-assistant#readme",
+  "devDependencies": {
+    "@mdi/js": "^7.4.47",
+    "@types/node": "^22.13.8",
+    "@types/sortablejs": "^1.15.8",
+    "custom-card-helpers": "^1.9.0",
+    "home-assistant-js-websocket": "^9.4.0",
+    "lit": "^2.8.0",
+    "sortablejs": "^1.15.6",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "web-types-lit": "^0.1.0"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
