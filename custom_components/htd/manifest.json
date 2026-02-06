@@ -1,24 +1,24 @@
 {
   "domain": "htd",
-  "documentation": "https://www.github.com/hikirsch/htd-home-assistant",
-  "issue_tracker": "https://www.github.com/hikirsch/htd-home-assistant/issues",
+  "name": "Home Theater Direct",
   "codeowners": [
     "@hikirsch"
-  ],
-  "name": "Home Theater Direct",
-  "version": "2.0.0-beta.1",
-  "iot_class": "local_push",
-  "integration_type": "hub",
-  "requirements": [
-    "htd_client==0.0.21"
   ],
   "config_flow": true,
   "dhcp": [
     {
-      "macaddress": "A44F29"
+      "macaddress": "A44F29*"
     },
     {
-      "macaddress": "A64F29"
+      "macaddress": "A64F29*"
     }
-  ]
+  ],
+  "documentation": "https://www.github.com/hikirsch/htd-home-assistant",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://www.github.com/hikirsch/htd-home-assistant/issues",
+  "requirements": [
+    "htd_client==0.0.24"
+  ],
+  "version": "2.0.0-rc.2"
 }
