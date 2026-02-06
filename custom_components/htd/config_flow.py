@@ -3,7 +3,7 @@ from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-from homeassistant.components import dhcp
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow, OptionsFlowWithConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 from homeassistant.core import callback, HomeAssistant
@@ -31,7 +31,7 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
     unique_id: str = None
 
     async def async_step_dhcp(
-        self, discovery_info: dhcp.DhcpServiceInfo
+        self, discovery_info: DhcpServiceInfo
     ):
         """Handle dhcp discovery."""
         _LOGGER.info("HTD device detected: %s %s" % (discovery_info.ip, self.port))
