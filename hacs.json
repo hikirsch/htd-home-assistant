@@ -1,7 +1,7 @@
 {
   "name": "Home Theater Direct",
   "filename": "htd.zip",
-  "homeassistant": "2025.1.2",
+  "homeassistant": "2026.2",
   "render_readme": true,
   "zip_release": true
 }
