@@ -4,7 +4,7 @@ from typing import Any
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow, OptionsFlowWithConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
 from homeassistant.core import callback, HomeAssistant
 from htd_client import async_get_model_info
@@ -110,7 +110,7 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        return HtdOptionsFlowHandler(config_entry)
+        return HtdOptionsFlowHandler()
 
     async def async_step_options(self, user_input=None):
         if user_input is not None:
@@ -137,7 +137,7 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-class HtdOptionsFlowHandler(OptionsFlowWithConfigEntry):
+class HtdOptionsFlowHandler(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
             options = {
