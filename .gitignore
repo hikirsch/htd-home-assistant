@@ -1,6 +1,11 @@
-.vscode/
-__pycache__/
-venv/
-venv2/
 .idea
+.vscode/
+
+.venv/
+__pycache__/
+
+htd-home-assistant.iml
 hass-working-directory
+
+node_modules/
+.vite/

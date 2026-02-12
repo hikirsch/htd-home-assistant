@@ -175,7 +175,7 @@ class HtdDevice(MediaPlayerEntity):
         return self.client.ready and self.zone_info is not None
 
     async def async_set_volume_level(self, volume: float):
-        converted_volume = int(volume * HtdConstants.MAX_VOLUME)
+        converted_volume = round(volume * HtdConstants.MAX_VOLUME)
         _LOGGER.info("setting new volume for zone %d to %f, raw htd = %d" % (self.zone, volume, converted_volume))
         await self.client.async_set_volume(self.zone, converted_volume)
 
@@ -214,7 +214,7 @@ class HtdDevice(MediaPlayerEntity):
         # Sensors should also register callbacks to HA when their state changes
         # print('registering callback')
         await self.client.async_subscribe(self._do_update)
-        self.client.refresh()
+        await self.client.refresh()
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
