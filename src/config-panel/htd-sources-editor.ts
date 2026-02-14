@@ -28,6 +28,14 @@ class HtdSourcesEditor extends LitElement {
   @property({attribute: false})
   hasChanges: boolean = false;
 
+  handleCancel() {
+
+  }
+
+  handleReset() {
+
+  }
+
   handleSubmit() {
     if (!this.hasChanges) {
       console.log('No changes to save');
@@ -135,7 +143,7 @@ class HtdSourcesEditor extends LitElement {
                 <tr>
                     <th>&nbsp;</th>
                     <th class="center">Enabled</th>
-                    <th>Source Name</th>
+                    <th>Source Number</th>
                     <th>Alias</th>
                 </tr>
                 </thead>
@@ -149,6 +157,14 @@ class HtdSourcesEditor extends LitElement {
             <div class="card-actions">
                 <ha-progress-button @click=${this.handleSubmit}>
                     Save
+                </ha-progress-button>
+
+                <ha-progress-button @click=${this.handleCancel}>
+                    Cancel
+                </ha-progress-button>
+
+                <ha-progress-button @click=${this.handleReset}>
+                    Reset
                 </ha-progress-button>
             </div>
         </ha-card>

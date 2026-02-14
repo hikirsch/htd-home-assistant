@@ -117,6 +117,7 @@ class HtdLayoutElement extends LitElement {
               overflow: auto;
               -webkit-overflow-scrolling: touch;
               display: flex;
+              justify-content: center;
               gap: 1rem;
           }
           

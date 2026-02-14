@@ -1,3 +1,0 @@
-[submodule "home-assistant-frontend"]
-	path = home-assistant-frontend
-	url = https://github.com/home-assistant/frontend.git
