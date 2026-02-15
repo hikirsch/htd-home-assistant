@@ -14,12 +14,15 @@ from homeassistant.const import (
     STATE_ON,
     STATE_UNKNOWN,
     STATE_UNAVAILABLE,
+    CONF_ALIAS,
+    CONF_ZONE,
+    CONF_ENABLED,
 )
 from homeassistant.core import HomeAssistant
 from htd_client import BaseClient, HtdConstants, HtdMcaClient
 from htd_client.models import ZoneDetail
 
-from .const import DOMAIN, CONF_DEVICE_NAME
+from .const import DOMAIN, CONF_DEVICE_NAME, CONF_SOURCES
 
 
 def make_alphanumeric(input_string):
@@ -54,7 +57,12 @@ async def async_setup_platform(hass, _, async_add_entities, __=None):
 
         zone_count = client.get_zone_count()
         source_count = client.get_source_count()
-        sources = [f"Source {i + 1}" for i in range(source_count)]
+        # Default sources for YAML config
+        sources = [
+            {CONF_ZONE: i + 1, CONF_ALIAS: f"Source {i + 1}", CONF_ENABLED: True}
+            for i in range(source_count)
+        ]
+        
         for zone in range(1, zone_count + 1):
             entity = HtdDevice(
                 unique_id,
@@ -79,7 +87,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: HtdClientConfigEn
     source_count = client.get_source_count()
     device_name = config_entry.title
     unique_id = config_entry.data.get(CONF_UNIQUE_ID)
-    sources = [f"Source {i + 1}" for i in range(source_count)]
+    
+    # Load custom sources from options, or generate defaults
+    sources_config = config_entry.options.get(CONF_SOURCES)
+    
+    if sources_config:
+        sources = sources_config
+    else:
+        sources = [
+            {CONF_ZONE: i + 1, CONF_ALIAS: f"Source {i + 1}", CONF_ENABLED: True}
+            for i in range(source_count)
+        ]
+
     for zone in range(1, zone_count + 1):
         entity = HtdDevice(
             unique_id,
@@ -100,7 +119,7 @@ class HtdDevice(MediaPlayerEntity):
     unique_id: str = None
     device_name: str = None
     client: BaseClient = None
-    sources: [str] = None
+    sources_config: list[dict] = None
     zone: int = None
     changing_volume: int | None = None
     zone_info: ZoneDetail = None
@@ -117,7 +136,7 @@ class HtdDevice(MediaPlayerEntity):
         self.device_name = device_name
         self.zone = zone
         self.client = client
-        self.sources = sources
+        self.sources_config = sources
         zone_fmt = f"02" if self.client.model["zones"] > 10 else "01"
         self.entity_id = get_media_player_entity_id(device_name, zone, zone_fmt)
 
@@ -189,20 +208,46 @@ class HtdDevice(MediaPlayerEntity):
             await self.client.async_unmute(self.zone)
 
     @property
-    def source(self) -> str:
-        return self.sources[self.zone_info.source - 1]
+    def source(self) -> str | None:
+        if self.zone_info.source is None or self.zone_info.source == 0:
+            return None
+            
+        # Find config for current physical source
+        # self.zone_info.source is 1-based physical ID
+        current_id = self.zone_info.source
+        
+        # Search in full config (even if disabled, we should probably show it or fallback)
+        config = next((s for s in self.sources_config if s[CONF_ZONE] == current_id), None)
+        
+        if config:
+            return config[CONF_ALIAS]
+            
+        return f"Source {current_id}"
 
     @property
     def source_list(self):
-        return self.sources
+        # Return aliases of ENABLED sources
+        return [s[CONF_ALIAS] for s in self.sources_config if s.get(CONF_ENABLED, True)]
 
     @property
     def media_title(self):
         return self.source
 
-    async def async_select_source(self, source: int):
-        source_index = self.sources.index(source)
-        await self.client.async_set_source(self.zone, source_index + 1)
+    async def async_select_source(self, source: str):
+        # Find config for the selected alias
+        # We need to search ONLY enabled sources to match source_list behavior?
+        # Or all sources? Typically HA verifies input against source_list.
+        # But let's be safe and search all.
+        print(f"Selecting source: {source}")
+        print(f"Known sources: {self.sources_config}")
+        
+        match = next((s for s in self.sources_config if s[CONF_ALIAS] == source), None)
+        
+        if match:
+            physical_id = match[CONF_ZONE]
+            await self.client.async_set_source(self.zone, physical_id)
+        else:
+            _LOGGER.warning(f"Selected source '{source}' not found in configuration.")
 
     @property
     def icon(self):

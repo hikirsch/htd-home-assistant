@@ -4,7 +4,7 @@
   "description": "![HTD](logo-htd.png)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "vite"
   },
   "repository": {
     "type": "git",

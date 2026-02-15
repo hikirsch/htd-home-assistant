@@ -118,9 +118,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: HtdConfigEntry):
 
     entry.runtime_data = client
 
-    # entry.async_on_unload(
-    #     entry.add_update_listener(async_reload_entry)
-    # )
+    entry.async_on_unload(
+        entry.add_update_listener(async_reload_entry)
+    )
 
     _async_cleanup_registry_entries(hass, entry)
 
@@ -139,9 +139,9 @@ async def async_remove_entry(hass: HomeAssistant, entry: HtdConfigEntry) -> None
         await hass.config_entries.async_forward_entry_unload(entry, platform)
 
 
-# async def async_reload_entry(hass: HomeAssistant, entry: HtdConfigEntry) -> None:
-#     """Handle options update."""
-#     await hass.config_entries.async_reload(entry.entry_id)
+async def async_reload_entry(hass: HomeAssistant, entry: HtdConfigEntry) -> None:
+    """Handle options update."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: HtdConfigEntry) -> bool:

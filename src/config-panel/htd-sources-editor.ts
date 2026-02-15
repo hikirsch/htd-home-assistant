@@ -13,19 +13,19 @@ class HtdSourcesEditor extends LitElement {
     handle: '.handle',
   };
 
-  @property({attribute: false})
+  @property({ attribute: false })
   hass: HomeAssistant;
 
-  @property({type: Array})
+  @property({ type: Array })
   enabledSources: HtdSourceConfig[] = [];
 
-  @property({type: Array})
+  @property({ type: Array })
   disabledSources: HtdSourceConfig[] = [];
 
-  @property({type: String})
+  @property({ type: String })
   sourceType: string;
 
-  @property({attribute: false})
+  @property({ attribute: false })
   hasChanges: boolean = false;
 
   handleCancel() {
@@ -96,6 +96,7 @@ class HtdSourcesEditor extends LitElement {
     source.enabled = !source.enabled;
     sources.splice(index, 1);
     otherSources.push(source);
+    this.hasChanges = true;
     this.requestUpdate();
   };
 
@@ -104,6 +105,7 @@ class HtdSourcesEditor extends LitElement {
     const sources = changed.enabled ? this.enabledSources : this.disabledSources;
     const source = sources.find(s => s.zone === changed.zone);
     source.alias = input.value;
+    this.hasChanges = true;
   };
 
   renderRow(source: HtdSourceConfig) {
