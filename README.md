@@ -1,46 +1,69 @@
-# Home Theater Direct Integration for Home Assistant
+# HTD Home Assistant Integration (naming-ux fork)
 
-![HTD](logo-htd.png)
+This is a fork of [hikirsch/htd-home-assistant](https://github.com/hikirsch/htd-home-assistant)
+with added UI for zone naming and per-zone source filtering.
 
-This integration adds support for the Home Theater Direct line of Whole House Audio to Home Assistant.
+**All protocol, transport, power, volume, and source-selection logic is unchanged**
+from upstream — those were working great and we didn't touch them. The
+audio control still flows through the upstream `htd_client` PyPI package.
 
-Currently, it supports the following models.
-- MC/MCA-66
-- Lync 6
-- Lync 12
+## What's different from upstream
 
-## Installation steps
+* **Per-zone friendly names** — replace the default `Zone N (device)` label
+  with whatever you want (e.g. `Kitchen`, `Primary Bath`, `Deck`).
+* **Per-zone source filtering** — each zone's source dropdown shows only
+  the sources you've marked as allowed for it. Your garage doesn't need
+  to see `Turntable` in its source list, and your kitchen doesn't need
+  to see `Theater Room`.
+* **Global source labels** — rename `Source 3` to `Sonos Port` and every
+  zone that can use it shows `Sonos Port`.
+* **Enable/disable toggle per zone** — suppress unused zones entirely.
 
-### Via HACS (Home Assistant Community Store)
+All of these are **UI-only** — the HTD controller's own stored names are
+left alone. Physical keypads continue to show whatever they were showing.
 
-Easiest installation is via [HACS](https://hacs.xyz/):
+## Installation (HACS)
 
-Please click this button below to install the integration:
+1. In HACS, add this repo as a custom Integration repository:
+   `https://github.com/YOUR_USERNAME/htd-home-assistant`
+2. Install **Home Theater Direct** from HACS.
+3. Restart Home Assistant.
+4. Go to **Settings → Devices & Services → Add Integration → Home Theater Direct**.
+5. Enter your gateway host/port as you would with the upstream integration.
+6. Once added, click **Configure** on the integration tile to walk through
+   the naming wizard.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=hikirsch&repository=htd-home-assistant&category=integration)
+## Configuration wizard
 
-After you add the repository for the integration, you will then be able to install it into Home Assistant.
+From the integration's **Configure** button, you get a menu with:
 
-### Manually
+- **Configure Zones** — walk through each zone, setting a friendly name,
+  enable/disable toggle, and check off which sources should appear in
+  its dropdown.
+- **Rename Sources** — one field per physical source to set its global
+  label (e.g. Source 7 → "Apple TV").
+- **Connection Settings** — original host/port editor from upstream.
+- **Save & Exit**
 
-Download all the files from this repo and upload as `custom_components/htd` folder.
+## Keeping in sync with upstream
 
-### Configuration
+```bash
+# One-time setup to track upstream:
+git remote add upstream https://github.com/hikirsch/htd-home-assistant.git
 
-Go to Configuration -> Integrations -> Add Integration -> Home Theater Direct.
+# Whenever you want the latest:
+git fetch upstream
+git checkout main
+git merge upstream/main
 
-If you wish to use a USB to Serial adapter, you will need to configure the integration manually in your `configuration.yaml` file.
-
-```yaml
-htd:
-  - device_name: Lync 6 over Serial
-    path: /dev/ttyUSB0
+# If you're on a branch (e.g. naming-ux):
+git checkout naming-ux
+git rebase main
 ```
 
-## Code Credits
-- https://github.com/dustinmcintire/htd-lync
-- https://github.com/whitingj/mca66
-- https://github.com/qguernsey/Lync12
-- https://github.com/steve28/mca66
-- http://www.brandonclaps.com/?p=173
-- https://github.com/lounsbrough/htd-mca-66-api
+## Credits
+
+All of the hard protocol work, volume stepping, connection handling, and
+the upstream [htd_client](https://pypi.org/project/htd_client/) Python
+package are by [@hikirsch](https://github.com/hikirsch). This fork just
+adds a config-UX layer on top.

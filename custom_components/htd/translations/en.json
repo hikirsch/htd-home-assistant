@@ -27,16 +27,68 @@
   "options": {
     "step": {
       "init": {
-        "title": "Configure Device",
+        "title": "HTD Configuration",
+        "description": "What would you like to configure?",
         "data": {
-          "device_kind": "Type of device",
+          "action": "Action"
+        }
+      },
+      "connection": {
+        "title": "Connection Settings",
+        "data": {
           "host": "Host name or IP Address",
           "port": "Port (default is 10006)"
         }
       },
-      "options": {
-        "title": "Home Theater Direct",
-        "description": "Choose a name for this gateway."
+      "source_labels": {
+        "title": "Source Labels",
+        "description": "Give each physical input a friendly name (shown everywhere in Home Assistant). Leave blank to use the default.",
+        "data": {
+          "source_1": "Source 1 Label",
+          "source_2": "Source 2 Label",
+          "source_3": "Source 3 Label",
+          "source_4": "Source 4 Label",
+          "source_5": "Source 5 Label",
+          "source_6": "Source 6 Label",
+          "source_7": "Source 7 Label",
+          "source_8": "Source 8 Label",
+          "source_9": "Source 9 Label",
+          "source_10": "Source 10 Label",
+          "source_11": "Source 11 Label",
+          "source_12": "Source 12 Label",
+          "source_13": "Source 13 Label",
+          "source_14": "Source 14 Label",
+          "source_15": "Source 15 Label",
+          "source_16": "Source 16 Label",
+          "source_17": "Source 17 Label",
+          "source_18": "Source 18 Label"
+        }
+      },
+      "zone": {
+        "title": "Zone {zone_num} of {total}",
+        "description": "Give this zone a friendly name, enable/disable it, and check which sources should appear in its source list.",
+        "data": {
+          "name": "Zone Name",
+          "enabled": "Enable this zone",
+          "src_1": "Show Source 1",
+          "src_2": "Show Source 2",
+          "src_3": "Show Source 3",
+          "src_4": "Show Source 4",
+          "src_5": "Show Source 5",
+          "src_6": "Show Source 6",
+          "src_7": "Show Source 7",
+          "src_8": "Show Source 8",
+          "src_9": "Show Source 9",
+          "src_10": "Show Source 10",
+          "src_11": "Show Source 11",
+          "src_12": "Show Source 12",
+          "src_13": "Show Source 13",
+          "src_14": "Show Source 14",
+          "src_15": "Show Source 15",
+          "src_16": "Show Source 16",
+          "src_17": "Show Source 17",
+          "src_18": "Show Source 18"
+        }
       }
     }
   }
