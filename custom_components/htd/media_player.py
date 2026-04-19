@@ -1,4 +1,22 @@
-"""Support for HTD"""
+"""Support for HTD with per-zone naming and source filtering.
+
+This is a fork of hikirsch's excellent htd-home-assistant integration
+(https://github.com/hikirsch/htd-home-assistant).  The protocol, transport,
+and hardware-facing logic are entirely his and unchanged - all audio /
+power / source / mute commands still go through the upstream htd_client
+PyPI package.
+
+What this fork adds on top (UI-only, no hardware changes):
+  * Per-zone friendly names that replace the default "Zone N (device)" label.
+  * Per-zone source filtering - each zone's source dropdown shows only the
+    sources you've marked allowed for it, instead of all 6/12/18.
+  * Global source labels - rename "Source 3" to "Sonos" everywhere in HA.
+  * An "Enabled" toggle per zone so unused zones can be suppressed.
+
+None of these touch the HTD controller itself - the names stored on the
+physical keypads are left alone.  This lives entirely in Home Assistant's
+config entry options.
+"""
 
 import logging
 import re
@@ -19,7 +37,15 @@ from homeassistant.core import HomeAssistant
 from htd_client import BaseClient, HtdConstants, HtdMcaClient
 from htd_client.models import ZoneDetail
 
-from .const import DOMAIN, CONF_DEVICE_NAME
+from .const import (
+    DOMAIN,
+    CONF_DEVICE_NAME,
+    CONF_SOURCE_LABELS,
+    CONF_ZONES,
+    CONF_ZONE_NAME,
+    CONF_ZONE_ENABLED,
+    CONF_ZONE_ALLOWED_SOURCES,
+)
 
 
 def make_alphanumeric(input_string):
@@ -42,7 +68,36 @@ _LOGGER = logging.getLogger(__name__)
 type HtdClientConfigEntry = ConfigEntry[BaseClient]
 
 
+def _build_source_labels(client: BaseClient, options: dict) -> list[str]:
+    """Construct the MASTER source list indexed 0..N-1.
+
+    Every physical source index the hardware has gets an entry here, because
+    the entity's ``source`` property indexes into this list with
+    ``zone_info.source - 1``.  Disabled/hidden sources are filtered later by
+    ``source_list``, not here.
+    """
+    source_count = client.get_source_count()
+    overrides: dict[str, str] = options.get(CONF_SOURCE_LABELS, {}) or {}
+    result = []
+    for i in range(source_count):
+        src_num = i + 1
+        label = overrides.get(str(src_num)) or f"Source {src_num}"
+        result.append(label)
+    return result
+
+
+def _zone_config(options: dict, zone: int) -> dict:
+    """Return the per-zone options dict for a given zone number."""
+    zones = options.get(CONF_ZONES, {}) or {}
+    return zones.get(str(zone), {}) or {}
+
+
 async def async_setup_platform(hass, _, async_add_entities, __=None):
+    """Legacy YAML setup path - kept for backward compatibility with
+    hikirsch's original ``htd:`` YAML config.  The fork's per-zone naming
+    only applies to config-entry installs; YAML users get the plain
+    default behavior.
+    """
     htd_configs = hass.data[DOMAIN]
     entities = []
 
@@ -56,13 +111,16 @@ async def async_setup_platform(hass, _, async_add_entities, __=None):
         zone_count = client.get_zone_count()
         source_count = client.get_source_count()
         sources = [f"Source {i + 1}" for i in range(source_count)]
+        allowed_sources = list(range(1, source_count + 1))
         for zone in range(1, zone_count + 1):
             entity = HtdDevice(
                 unique_id,
                 device_name,
                 zone,
                 sources,
-                client
+                allowed_sources,
+                None,   # zone_display_name override
+                client,
             )
 
             entities.append(entity)
@@ -80,14 +138,36 @@ async def async_setup_entry(_: HomeAssistant, config_entry: HtdClientConfigEntry
     source_count = client.get_source_count()
     device_name = config_entry.title
     unique_id = config_entry.data.get(CONF_UNIQUE_ID)
-    sources = [f"Source {i + 1}" for i in range(source_count)]
+    options = config_entry.options or {}
+
+    # Master source list - every physical source gets a slot so index math
+    # against zone_info.source continues to work.
+    sources = _build_source_labels(client, options)
+
     for zone in range(1, zone_count + 1):
+        zopt = _zone_config(options, zone)
+
+        # Skip zones the user has explicitly disabled.
+        if zopt.get(CONF_ZONE_ENABLED, True) is False:
+            continue
+
+        # Per-zone allowed sources (list of 1-based source numbers).  If
+        # unset, show all of them.
+        allowed = zopt.get(CONF_ZONE_ALLOWED_SOURCES)
+        if not allowed:
+            allowed = list(range(1, source_count + 1))
+
+        # Optional friendly override for the zone display name.
+        zone_display_name = zopt.get(CONF_ZONE_NAME) or None
+
         entity = HtdDevice(
             unique_id,
             device_name,
             zone,
             sources,
-            client
+            allowed,
+            zone_display_name,
+            client,
         )
 
         entities.append(entity)
@@ -101,7 +181,9 @@ class HtdDevice(MediaPlayerEntity):
     unique_id: str = None
     device_name: str = None
     client: BaseClient = None
-    sources: [str] = None
+    sources: list[str] = None
+    allowed_sources: list[int] = None
+    zone_display_name: str | None = None
     zone: int = None
     changing_volume: int | None = None
     zone_info: ZoneDetail = None
@@ -112,13 +194,17 @@ class HtdDevice(MediaPlayerEntity):
         device_name,
         zone,
         sources,
-        client
+        allowed_sources,
+        zone_display_name,
+        client,
     ):
         self.unique_id = f"{unique_id}_{zone:02}"
         self.device_name = device_name
         self.zone = zone
         self.client = client
         self.sources = sources
+        self.allowed_sources = allowed_sources
+        self.zone_display_name = zone_display_name
         zone_fmt = f"02" if self.client.model["zones"] > 10 else "01"
         self.entity_id = get_media_player_entity_id(device_name, zone, zone_fmt)
 
@@ -132,6 +218,8 @@ class HtdDevice(MediaPlayerEntity):
 
     @property
     def name(self):
+        if self.zone_display_name:
+            return self.zone_display_name
         return f"Zone {self.zone} ({self.device_name})"
 
     def update(self):
@@ -191,18 +279,46 @@ class HtdDevice(MediaPlayerEntity):
 
     @property
     def source(self) -> str:
-        return self.sources[self.zone_info.source - 1]
+        """Return the currently selected source's friendly label.
+
+        ``zone_info.source`` is 1-based over the full hardware source range,
+        so we index ``self.sources`` (the master list) with ``source - 1``
+        regardless of the per-zone filter.  This keeps the displayed name
+        correct even if the active source isn't in the allowed list (which
+        can happen if someone selects it from a physical keypad).
+        """
+        if self.zone_info is None:
+            return None
+        idx = self.zone_info.source - 1
+        if 0 <= idx < len(self.sources):
+            return self.sources[idx]
+        return None
 
     @property
     def source_list(self):
-        return self.sources
+        """Only show the user-allowed subset in the dropdown."""
+        return [self.sources[src - 1] for src in self.allowed_sources
+                if 1 <= src <= len(self.sources)]
 
     @property
     def media_title(self):
         return self.source
 
-    async def async_select_source(self, source: int):
-        source_index = self.sources.index(source)
+    async def async_select_source(self, source: str):
+        """Translate a friendly label back to a 1-based source number.
+
+        We look up against the master ``self.sources`` list (not just the
+        filtered ``source_list``) so a user-labeled source always resolves
+        even if the filter has changed.
+        """
+        try:
+            source_index = self.sources.index(source)
+        except ValueError:
+            _LOGGER.warning(
+                "Unknown source '%s' for zone %d; list=%s",
+                source, self.zone, self.sources
+            )
+            return
         await self.client.async_set_source(self.zone, source_index + 1)
 
     @property
