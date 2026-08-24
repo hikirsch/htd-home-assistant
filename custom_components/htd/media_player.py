@@ -18,8 +18,19 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from htd_client import BaseClient, HtdConstants, HtdMcaClient
 from htd_client.models import ZoneDetail
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity_registry import RegistryEntryDisabler
 
-from .const import DOMAIN, CONF_DEVICE_NAME
+from .const import (
+    DOMAIN,
+    CONF_DEVICE_NAME,
+    CONF_ZONE_NAMES,
+    CONF_SOURCE_NAMES,
+    CONF_ZONE_FILTER_ENABLED,
+    CONF_ENABLED_ZONES,
+    CONF_SOURCE_FILTER_ENABLED,
+    CONF_ZONE_SOURCE_FILTERS,
+)
 
 
 def make_alphanumeric(input_string):
@@ -72,25 +83,42 @@ async def async_setup_platform(hass, _, async_add_entities, __=None):
     return True
 
 
-async def async_setup_entry(_: HomeAssistant, config_entry: HtdClientConfigEntry, async_add_entities):
-    entities = []
-
+async def async_setup_entry(hass: HomeAssistant, config_entry: HtdClientConfigEntry, async_add_entities):
     client = config_entry.runtime_data
     zone_count = client.get_zone_count()
     source_count = client.get_source_count()
     device_name = config_entry.title
     unique_id = config_entry.data.get(CONF_UNIQUE_ID)
     sources = [f"Source {i + 1}" for i in range(source_count)]
+
+    zone_filter_enabled = config_entry.data.get(CONF_ZONE_FILTER_ENABLED, False)
+    enabled_zones = set(config_entry.data.get(CONF_ENABLED_ZONES, []))
+    registry = er.async_get(hass)
+
+    entities = []
     for zone in range(1, zone_count + 1):
         entity = HtdDevice(
             unique_id,
             device_name,
             zone,
             sources,
-            client
+            client,
+            config_entry
         )
-
         entities.append(entity)
+
+        should_enable = not zone_filter_enabled or zone in enabled_zones
+        uid = f"{unique_id}_{zone:02}"
+        entity_id = registry.async_get_entity_id("media_player", DOMAIN, uid)
+        if entity_id:
+            entry = registry.async_get(entity_id)
+            if entry:
+                if should_enable and entry.disabled_by == RegistryEntryDisabler.INTEGRATION:
+                    registry.async_update_entity(entity_id, disabled_by=None)
+                elif not should_enable and entry.disabled_by is None:
+                    registry.async_update_entity(
+                        entity_id, disabled_by=RegistryEntryDisabler.INTEGRATION
+                    )
 
     async_add_entities(entities)
 
@@ -112,13 +140,15 @@ class HtdDevice(MediaPlayerEntity):
         device_name,
         zone,
         sources,
-        client
+        client,
+        config_entry=None
     ):
         self.unique_id = f"{unique_id}_{zone:02}"
         self.device_name = device_name
         self.zone = zone
         self.client = client
         self.sources = sources
+        self.config_entry = config_entry
         zone_fmt = f"02" if self.client.model["zones"] > 10 else "01"
         self.entity_id = get_media_player_entity_id(device_name, zone, zone_fmt)
 
@@ -127,12 +157,27 @@ class HtdDevice(MediaPlayerEntity):
         return self.zone_info is not None and self.zone_info.enabled
 
     @property
+    def entity_registry_enabled_default(self) -> bool:
+        if self.config_entry is None:
+            return True
+        if not self.config_entry.data.get(CONF_ZONE_FILTER_ENABLED, False):
+            return True
+        return self.zone in self.config_entry.data.get(CONF_ENABLED_ZONES, [])
+
+    @property
     def supported_features(self):
         return SUPPORT_HTD
 
     @property
-    def name(self):
-        return f"Zone {self.zone} ({self.device_name})"
+    def name(self) -> str:
+        if self.config_entry is None:
+            return f"Zone {self.zone} ({self.device_name})"
+        overrides = self.config_entry.data.get(CONF_ZONE_NAMES, {})
+        return (
+            overrides.get(str(self.zone))
+            or self.client.get_zone_name(self.zone)
+            or f"Zone {self.zone}"
+        )
 
     def update(self):
         self.zone_info = self.client.get_zone(self.zone)
@@ -189,21 +234,40 @@ class HtdDevice(MediaPlayerEntity):
         else:
             await self.client.async_unmute(self.zone)
 
-    @property
-    def source(self) -> str:
-        return self.sources[self.zone_info.source - 1]
+    def _resolve_source_name(self, source: int) -> str:
+        if self.config_entry is None:
+            return self.client.get_source_name(source)
+        overrides = self.config_entry.data.get(CONF_SOURCE_NAMES, {})
+        return overrides.get(str(source)) or self.client.get_source_name(source)
 
     @property
-    def source_list(self):
-        return self.sources
+    def source(self) -> str:
+        return self._resolve_source_name(self.zone_info.source)
+
+    def _build_source_map(self) -> dict[str, int]:
+        if self.config_entry is None:
+            return {self._resolve_source_name(i): i for i in range(1, len(self.sources) + 1)}
+        filter_enabled = self.config_entry.data.get(CONF_SOURCE_FILTER_ENABLED, False)
+        filters = self.config_entry.data.get(CONF_ZONE_SOURCE_FILTERS, {})
+        allowed = filters.get(str(self.zone)) if filter_enabled else None
+        result = {}
+        for i in range(1, len(self.sources) + 1):
+            if allowed is None or not allowed or i in allowed:
+                result[self._resolve_source_name(i)] = i
+        return result
+
+    @property
+    def source_list(self) -> list[str]:
+        return list(self._build_source_map().keys())
 
     @property
     def media_title(self):
         return self.source
 
-    async def async_select_source(self, source: int):
-        source_index = self.sources.index(source)
-        await self.client.async_set_source(self.zone, source_index + 1)
+    async def async_select_source(self, source: str) -> None:
+        controller_index = self._build_source_map().get(source)
+        if controller_index is not None:
+            await self.client.async_set_source(self.zone, controller_index)
 
     @property
     def icon(self):
