@@ -5,14 +5,29 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow, OptionsFlowWithConfigEntry
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UNIQUE_ID
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PATH, CONF_PORT, CONF_UNIQUE_ID
 from homeassistant.core import callback, HomeAssistant
 from htd_client import async_get_model_info
 from htd_client.constants import HtdConstants
 
-from .const import CONF_DEVICE_NAME, DOMAIN
+from .const import (
+    CONF_DEVICE_NAME,
+    CONF_ZONE_NAMES,
+    CONF_SOURCE_NAMES,
+    CONF_ZONE_FILTER_ENABLED,
+    CONF_ENABLED_ZONES,
+    CONF_SOURCE_FILTER_ENABLED,
+    CONF_ZONE_SOURCE_FILTERS,
+    CONF_MODEL_KEY,
+    CONF_RESTORE_LAST_STATE,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+CONF_CONNECTION_TYPE = "connection_type"
+CONNECTION_TYPE_NETWORK = "network"
+CONNECTION_TYPE_SERIAL = "serial"
 
 
 def configured_instances(hass: HomeAssistant):
@@ -28,7 +43,17 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
 
     host: str = None
     port: int = HtdConstants.DEFAULT_PORT
+    serial_address: str = None
     unique_id: str = None
+    _device_name: str = None
+    _model_info: dict = None
+    _zone_name_overrides: dict = None
+    _source_name_overrides: dict = None
+    _source_filter_enabled: bool = False
+    _zone_source_filters: dict = None
+    _current_filter_zone: int = 1
+    _zone_filter_enabled: bool = False
+    _enabled_zones: list = None
 
     async def async_step_dhcp(
         self, discovery_info: DhcpServiceInfo
@@ -41,6 +66,8 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if model_info is None:
             return self.async_abort(reason="unknown_model")
+
+        self._model_info = model_info
 
         _LOGGER.info("Model identified as: %s" % model_info)
 
@@ -61,14 +88,35 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_NAME: f"{model_info["friendly_name"]} ({host})",
         }
 
-        return await self.async_step_custom_connection(new_user_input)
+        return await self.async_step_network_connection(new_user_input)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ):
-        return await self.async_step_custom_connection(user_input)
+        return await self.async_step_connection_type(user_input)
 
-    async def async_step_custom_connection(
+    async def async_step_connection_type(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        if user_input is not None:
+            if user_input[CONF_CONNECTION_TYPE] == CONNECTION_TYPE_SERIAL:
+                return await self.async_step_serial_connection()
+            return await self.async_step_network_connection()
+
+        return self.async_show_form(
+            step_id='connection_type',
+            data_schema=vol.Schema({
+                vol.Required(
+                    CONF_CONNECTION_TYPE, default=CONNECTION_TYPE_NETWORK
+                ): vol.In({
+                    CONNECTION_TYPE_NETWORK: "Network (Wi-Fi / Ethernet gateway)",
+                    CONNECTION_TYPE_SERIAL: "Serial (USB / RS-232)",
+                }),
+            }),
+            last_step=False,
+        )
+
+    async def async_step_network_connection(
         self, user_input: dict[str, Any] | None = None
     ):
         errors = {}
@@ -86,6 +134,7 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 if response is not None:
                     success = True
+                    self._model_info = response
 
             except Exception as e:
                 _LOGGER.error("Exception occurred while trying to connect to Htd Gateway")
@@ -95,16 +144,58 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
             if success:
                 self.host = host
                 self.port = port
+                self.serial_address = None
                 self.unique_id = unique_id
 
-                return await self.async_step_options()
+                return await self.async_step_device()
 
             errors['base'] = "no_connection"
 
         return self.async_show_form(
-            step_id='user',
+            step_id='network_connection',
             data_schema=get_connection_settings_schema(),
             errors=errors
+        )
+
+    async def async_step_serial_connection(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        errors = {}
+
+        if user_input is not None:
+            success = False
+
+            serial_address = user_input[CONF_PATH]
+            unique_id = "htd-serial-%s" % serial_address
+
+            try:
+                response = await async_get_model_info(serial_address=serial_address)
+
+                if response is not None:
+                    success = True
+                    self._model_info = response
+
+            except Exception as e:
+                _LOGGER.error("Exception occurred while trying to connect to Htd Gateway")
+                _LOGGER.exception(e)
+                pass
+
+            if success:
+                self.serial_address = serial_address
+                self.host = None
+                self.port = None
+                self.unique_id = unique_id
+
+                return await self.async_step_device()
+
+            errors['base'] = "no_connection"
+
+        return self.async_show_form(
+            step_id='serial_connection',
+            data_schema=vol.Schema({
+                vol.Required(CONF_PATH): cv.string,
+            }),
+            errors=errors,
         )
 
     @staticmethod
@@ -112,73 +203,468 @@ class HtdConfigFlow(ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         return HtdOptionsFlowHandler(config_entry)
 
-    async def async_step_options(self, user_input=None):
+    async def async_step_device(self, user_input=None):
         if user_input is not None:
-            config_entry = {
-                CONF_HOST: self.host,
-                CONF_PORT: self.port,
-                CONF_UNIQUE_ID: self.unique_id,
-            }
+            self._device_name = user_input.get(CONF_DEVICE_NAME, "")
+            return await self.async_step_zone_names()
 
-            return self.async_create_entry(
-                title=user_input[CONF_DEVICE_NAME],
-                data=config_entry,
-                options={}
-            )
+        # reuse the model info from the connection-validation probe: every
+        # probe re-opens the connection, and on serial each port open can
+        # DTR-reset the gateway, so a redundant probe here risked aborting a
+        # flow whose validation had just succeeded
+        model_info = self._model_info
 
-        network_address = (self.host, self.port)
-        model_info = await async_get_model_info(network_address=network_address)
+        if model_info is None:
+            if self.serial_address:
+                model_info = await async_get_model_info(serial_address=self.serial_address)
+            else:
+                network_address = (self.host, self.port)
+                model_info = await async_get_model_info(network_address=network_address)
+
+        if model_info is None:
+            return self.async_abort(reason="unknown_model")
+        self._model_info = model_info
 
         return self.async_show_form(
-            step_id='options',
-            data_schema=get_options_schema(
-                model_info["friendly_name"],
+            step_id='device',
+            data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_DEVICE_NAME, default=model_info["friendly_name"]
+                ): cv.string,
+            })
+        )
+
+
+    async def async_step_zone_names(self, user_input=None):
+        zone_count = self._model_info["zones"]
+
+        if user_input is not None:
+            self._zone_name_overrides = {
+                str(i): name
+                for i in range(1, zone_count + 1)
+                if (name := (user_input.get(f"zone_{i}_name") or "").strip())
+            }
+            return await self.async_step_zone_filter()
+
+        return self.async_show_form(
+            step_id='zone_names',
+            data_schema=vol.Schema({
+                vol.Optional(f"zone_{i}_name", default=""): cv.string
+                for i in range(1, zone_count + 1)
+            }),
+            last_step=False
+        )
+
+    async def async_step_zone_filter(self, user_input=None):
+        zone_count = self._model_info["zones"]
+
+        if user_input is not None:
+            enabled = [
+                i for i in range(1, zone_count + 1)
+                if user_input.get(f"zone_{i}_enabled", True)
+            ]
+            if len(enabled) == zone_count:
+                self._zone_filter_enabled = False
+                self._enabled_zones = []
+            else:
+                self._zone_filter_enabled = True
+                self._enabled_zones = enabled
+            return await self.async_step_source_names()
+
+        zone_labels = {
+            f"zone_{i}_label": (
+                (self._zone_name_overrides or {}).get(str(i)) or f"Zone {i}"
             )
+            for i in range(1, zone_count + 1)
+        }
+
+        return self.async_show_form(
+            step_id='zone_filter',
+            data_schema=vol.Schema({
+                vol.Optional(f"zone_{i}_enabled", default=True): cv.boolean
+                for i in range(1, zone_count + 1)
+            }),
+            description_placeholders=zone_labels,
+            last_step=False,
+        )
+
+    async def async_step_source_names(self, user_input=None):
+        source_count = self._model_info["sources"]
+
+        if user_input is not None:
+            self._source_name_overrides = {
+                str(i): name
+                for i in range(1, source_count + 1)
+                if (name := (user_input.get(f"source_{i}_name") or "").strip())
+            }
+            return await self.async_step_source_filter_toggle()
+
+        return self.async_show_form(
+            step_id='source_names',
+            data_schema=vol.Schema({
+                vol.Optional(f"source_{i}_name", default=""): cv.string
+                for i in range(1, source_count + 1)
+            }),
+            last_step=False,
+        )
+
+    async def async_step_source_filter_toggle(self, user_input=None):
+        if user_input is not None:
+            self._source_filter_enabled = user_input.get(CONF_SOURCE_FILTER_ENABLED, False)
+            if not self._source_filter_enabled:
+                self._zone_source_filters = {}
+                return self._create_entry()
+            self._zone_source_filters = {}
+            self._current_filter_zone = 1
+            return await self.async_step_zone_source_filter()
+
+        return self.async_show_form(
+            step_id='source_filter_toggle',
+            data_schema=vol.Schema({
+                vol.Optional(CONF_SOURCE_FILTER_ENABLED, default=False): cv.boolean,
+            }),
+            last_step=False,
+        )
+
+    async def async_step_zone_source_filter(self, user_input=None):
+        source_count = self._model_info["sources"]
+        zone_count = self._model_info["zones"]
+        zone = self._current_filter_zone
+
+        if user_input is not None:
+            whitelist = [
+                i for i in range(1, source_count + 1)
+                if user_input.get(f"source_{i}_enabled", True)
+            ]
+            if not whitelist or len(whitelist) == source_count:
+                whitelist = []
+            self._zone_source_filters[str(zone)] = whitelist
+
+            if zone >= zone_count:
+                return self._create_entry()
+            self._current_filter_zone += 1
+            return await self.async_step_zone_source_filter()
+
+        zone_name = (self._zone_name_overrides or {}).get(str(zone)) or f"Zone {zone}"
+        existing = (self._zone_source_filters or {}).get(str(zone), [])
+        source_labels = {
+            f"source_{i}_label": (
+                (self._source_name_overrides or {}).get(str(i)) or f"Source {i}"
+            )
+            for i in range(1, source_count + 1)
+        }
+
+        return self.async_show_form(
+            step_id='zone_source_filter',
+            data_schema=vol.Schema({
+                vol.Optional(
+                    f"source_{i}_enabled",
+                    default=True if not existing or i in existing else False,
+                ): cv.boolean
+                for i in range(1, source_count + 1)
+            }),
+            description_placeholders={
+                "zone_name": zone_name,
+                "zone_number": str(zone),
+                "zone_count": str(zone_count),
+                **source_labels,
+            },
+            last_step=(zone == zone_count),
+        )
+
+    def _create_entry(self):
+        if self.serial_address:
+            connection_data = {CONF_PATH: self.serial_address}
+        else:
+            connection_data = {CONF_HOST: self.host, CONF_PORT: self.port}
+
+        return self.async_create_entry(
+            title=self._device_name,
+            data={
+                **connection_data,
+                CONF_UNIQUE_ID: self.unique_id,
+                CONF_DEVICE_NAME: self._device_name,
+                CONF_MODEL_KEY: (self._model_info or {}).get("key"),
+                CONF_RESTORE_LAST_STATE: False,
+                CONF_ZONE_NAMES: self._zone_name_overrides or {},
+                CONF_SOURCE_NAMES: self._source_name_overrides or {},
+                CONF_ZONE_FILTER_ENABLED: self._zone_filter_enabled,
+                CONF_ENABLED_ZONES: self._enabled_zones or [],
+                CONF_SOURCE_FILTER_ENABLED: self._source_filter_enabled,
+                CONF_ZONE_SOURCE_FILTERS: self._zone_source_filters or {},
+            },
+            options={},
         )
 
 
 class HtdOptionsFlowHandler(OptionsFlowWithConfigEntry):
+    _new_title: str = None
+    _connection_data: dict = None
+    _zone_name_overrides: dict = None
+    _source_name_overrides: dict = None
+    _source_filter_enabled: bool = False
+    _zone_source_filters: dict = None
+    _current_filter_zone: int = 1
+    _zone_filter_enabled: bool = False
+    _enabled_zones: list = None
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
-            options = {
-                **self.config_entry.data,
-                **user_input
-            }
+            self._new_title = user_input.get(CONF_DEVICE_NAME, self.config_entry.title)
+            self._connection_data = user_input
+            return await self.async_step_zone_names()
 
-            self.hass.config_entries.async_update_entry(
-                self.config_entry,
-                data=options
-            )
-
-            return self.async_create_entry(title=self.config_entry.title, data={})
+        if self.config_entry.data.get(CONF_PATH):
+            data_schema = get_serial_connection_settings_schema(self.config_entry)
+        else:
+            data_schema = get_connection_settings_schema(self.config_entry)
 
         return self.async_show_form(
             step_id='init',
-            data_schema=get_connection_settings_schema(self.config_entry)
+            data_schema=data_schema,
+            last_step=False
         )
 
+    async def async_step_zone_names(self, user_input: dict[str, Any] | None = None):
+        client = self.config_entry.runtime_data
+        zone_count = client.get_zone_count()
 
-def get_options_schema(friendly_name: str):
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_DEVICE_NAME, default=friendly_name
-            ): cv.string,
+        if user_input is not None:
+            self._zone_name_overrides = {
+                str(i): name
+                for i in range(1, zone_count + 1)
+                if (name := (user_input.get(f"zone_{i}_name") or "").strip())
+            }
+            return await self.async_step_zone_filter()
+
+        existing_zone_overrides = self.config_entry.data.get(CONF_ZONE_NAMES, {})
+        placeholders = {
+            f"zone_{i}_controller": client.get_zone_name(i) or f"Zone {i}"
+            for i in range(1, zone_count + 1)
         }
-    )
+
+        return self.async_show_form(
+            step_id='zone_names',
+            data_schema=vol.Schema({
+                vol.Optional(
+                    f"zone_{i}_name",
+                    default=existing_zone_overrides.get(str(i), "")
+                ): cv.string
+                for i in range(1, zone_count + 1)
+            }),
+            description_placeholders=placeholders,
+            last_step=False
+        )
+
+    async def async_step_zone_filter(self, user_input=None):
+        client = self.config_entry.runtime_data
+        zone_count = client.get_zone_count()
+
+        if user_input is not None:
+            enabled = [
+                i for i in range(1, zone_count + 1)
+                if user_input.get(f"zone_{i}_enabled", True)
+            ]
+            if len(enabled) == zone_count:
+                self._zone_filter_enabled = False
+                self._enabled_zones = []
+            else:
+                self._zone_filter_enabled = True
+                self._enabled_zones = enabled
+            return await self.async_step_source_names()
+
+        existing_enabled = set(self.config_entry.data.get(CONF_ENABLED_ZONES, []))
+        existing_filter = self.config_entry.data.get(CONF_ZONE_FILTER_ENABLED, False)
+
+        zone_labels = {
+            f"zone_{i}_label": (
+                (self._zone_name_overrides or {}).get(str(i))
+                or client.get_zone_name(i)
+                or f"Zone {i}"
+            )
+            for i in range(1, zone_count + 1)
+        }
+
+        return self.async_show_form(
+            step_id='zone_filter',
+            data_schema=vol.Schema({
+                vol.Optional(
+                    f"zone_{i}_enabled",
+                    default=True if not existing_filter or i in existing_enabled else False,
+                ): cv.boolean
+                for i in range(1, zone_count + 1)
+            }),
+            description_placeholders=zone_labels,
+            last_step=False,
+        )
+
+    async def async_step_source_names(self, user_input: dict[str, Any] | None = None):
+        client = self.config_entry.runtime_data
+        source_count = client.get_source_count()
+
+        if user_input is not None:
+            self._source_name_overrides = {
+                str(i): name
+                for i in range(1, source_count + 1)
+                if (name := (user_input.get(f"source_{i}_name") or "").strip())
+            }
+            return await self.async_step_source_filter_toggle()
+
+        existing_source_overrides = self.config_entry.data.get(CONF_SOURCE_NAMES, {})
+        placeholders = {
+            f"source_{i}_controller": client.get_source_name(i) or f"Source {i}"
+            for i in range(1, source_count + 1)
+        }
+
+        return self.async_show_form(
+            step_id='source_names',
+            data_schema=vol.Schema({
+                vol.Optional(
+                    f"source_{i}_name",
+                    default=existing_source_overrides.get(str(i), "")
+                ): cv.string
+                for i in range(1, source_count + 1)
+            }),
+            description_placeholders=placeholders,
+            last_step=False,
+        )
+
+    async def async_step_source_filter_toggle(self, user_input=None):
+        if user_input is not None:
+            self._source_filter_enabled = user_input.get(CONF_SOURCE_FILTER_ENABLED, False)
+            if not self._source_filter_enabled:
+                self._zone_source_filters = {}
+                return self._update_entry()
+            self._zone_source_filters = {}
+            self._current_filter_zone = 1
+            return await self.async_step_zone_source_filter()
+
+        existing = self.config_entry.data.get(CONF_SOURCE_FILTER_ENABLED, False)
+        return self.async_show_form(
+            step_id='source_filter_toggle',
+            data_schema=vol.Schema({
+                vol.Optional(CONF_SOURCE_FILTER_ENABLED, default=existing): cv.boolean,
+            }),
+            last_step=False,
+        )
+
+    async def async_step_zone_source_filter(self, user_input=None):
+        client = self.config_entry.runtime_data
+        source_count = client.get_source_count()
+        zone_count = client.get_zone_count()
+        zone = self._current_filter_zone
+
+        if user_input is not None:
+            whitelist = [
+                i for i in range(1, source_count + 1)
+                if user_input.get(f"source_{i}_enabled", True)
+            ]
+            if not whitelist or len(whitelist) == source_count:
+                whitelist = []
+            self._zone_source_filters[str(zone)] = whitelist
+
+            if zone >= zone_count:
+                return self._update_entry()
+            self._current_filter_zone += 1
+            return await self.async_step_zone_source_filter()
+
+        existing_filters = self.config_entry.data.get(CONF_ZONE_SOURCE_FILTERS, {})
+        existing = existing_filters.get(str(zone), [])
+        zone_name = (
+            (self._zone_name_overrides or {}).get(str(zone))
+            or client.get_zone_name(zone)
+            or f"Zone {zone}"
+        )
+        source_labels = {
+            f"source_{i}_label": (
+                (self._source_name_overrides or {}).get(str(i))
+                or client.get_source_name(i)
+                or f"Source {i}"
+            )
+            for i in range(1, source_count + 1)
+        }
+
+        return self.async_show_form(
+            step_id='zone_source_filter',
+            data_schema=vol.Schema({
+                vol.Optional(
+                    f"source_{i}_enabled",
+                    default=True if not existing or i in existing else False,
+                ): cv.boolean
+                for i in range(1, source_count + 1)
+            }),
+            description_placeholders={
+                "zone_name": zone_name,
+                "zone_number": str(zone),
+                "zone_count": str(zone_count),
+                **source_labels,
+            },
+            last_step=(zone == zone_count),
+        )
+
+    def _update_entry(self):
+        data = {
+            **self.config_entry.data,
+            **self._connection_data,
+            CONF_ZONE_NAMES: self._zone_name_overrides or {},
+            CONF_SOURCE_NAMES: self._source_name_overrides or {},
+            CONF_ZONE_FILTER_ENABLED: self._zone_filter_enabled,
+            CONF_ENABLED_ZONES: self._enabled_zones or [],
+            CONF_SOURCE_FILTER_ENABLED: self._source_filter_enabled,
+            CONF_ZONE_SOURCE_FILTERS: self._zone_source_filters or {},
+        }
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            data=data,
+            title=self._new_title,
+        )
+        return self.async_create_entry(title=self._new_title, data={})
 
 
 def get_connection_settings_schema(config_entry: ConfigEntry | None = None):
     if config_entry is not None:
         host = config_entry.data.get(CONF_HOST)
         port = config_entry.data.get(CONF_PORT)
+        device_name = config_entry.title
+        restore_last_state = config_entry.data.get(CONF_RESTORE_LAST_STATE, False)
     else:
         host = None
         port = HtdConstants.DEFAULT_PORT
+        device_name = None
+        restore_last_state = False
 
-    return vol.Schema(
-        {
-            vol.Required(CONF_HOST, default=host): cv.string,
-            vol.Required(CONF_PORT, default=port): cv.port,
-        }
-    )
+    schema = {
+        vol.Required(CONF_HOST, default=host): cv.string,
+        vol.Required(CONF_PORT, default=port): cv.port,
+        vol.Optional(CONF_DEVICE_NAME, default=device_name): cv.string,
+    }
+
+    if config_entry is not None:
+        schema[
+            vol.Optional(CONF_RESTORE_LAST_STATE, default=restore_last_state)
+        ] = cv.boolean
+
+    return vol.Schema(schema)
+
+
+def get_serial_connection_settings_schema(config_entry: ConfigEntry | None = None):
+    if config_entry is not None:
+        serial_address = config_entry.data.get(CONF_PATH)
+        device_name = config_entry.title
+        restore_last_state = config_entry.data.get(CONF_RESTORE_LAST_STATE, False)
+    else:
+        serial_address = None
+        device_name = None
+        restore_last_state = False
+
+    schema = {
+        vol.Required(CONF_PATH, default=serial_address): cv.string,
+        vol.Optional(CONF_DEVICE_NAME, default=device_name): cv.string,
+    }
+
+    if config_entry is not None:
+        schema[
+            vol.Optional(CONF_RESTORE_LAST_STATE, default=restore_last_state)
+        ] = cv.boolean
+
+    return vol.Schema(schema)
