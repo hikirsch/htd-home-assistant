@@ -191,18 +191,18 @@ class HtdDevice(MediaPlayerEntity):
 
     @property
     def source(self) -> str:
-        return self.sources[self.zone_info.source - 1]
+        return self.client.get_source_name(self.zone_info.source)
 
     @property
     def source_list(self):
-        return self.sources
+        return [self.client.get_source_name(i) for i in range(1, len(self.sources) + 1)]
 
     @property
     def media_title(self):
         return self.source
 
     async def async_select_source(self, source: int):
-        source_index = self.sources.index(source)
+        source_index = self.source_list.index(source)
         await self.client.async_set_source(self.zone, source_index + 1)
 
     @property

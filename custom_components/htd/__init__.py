@@ -1,5 +1,6 @@
 """Support for Home Theater Direct products"""
 
+import asyncio
 import logging
 
 import voluptuous as vol
@@ -9,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, discovery
 from htd_client import async_get_client
 
-from .const import DOMAIN, CONF_DEVICE_KIND, CONF_DEVICE_NAME
+from .const import DOMAIN, CONF_DEVICE_NAME
 from .utils import _async_cleanup_registry_entries
 
 PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
@@ -47,7 +48,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
         client = await async_get_client(
             serial_address=serial_address,
-            loop=hass.loop
         )
 
         unique_id = f"{client.model['name']}-{serial_address}"
@@ -74,10 +74,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     client = await async_get_client(
         network_address=network_address,
-        loop=hass.loop
     )
 
     config_entry.runtime_data = client
+
+    source_count = client.get_source_count()
+    await asyncio.gather(*[
+        client.async_query_source_name(i)
+        for i in range(1, source_count + 1)
+    ])
 
     config_entry.async_on_unload(
         config_entry.add_update_listener(async_update_listener)

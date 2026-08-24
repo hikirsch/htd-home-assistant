@@ -3,25 +3,23 @@
     "step": {
       "user": {
         "title": "Home Theater Direct",
+        "description": "Enter your HTD gateway connection details.",
         "data": {
-          "device_kind": "Type of device",
-          "mca": "MC/MCA66",
-          "lync": "Lync 6/12",
           "host": "Host name or IP Address",
-          "port": "Port (default is 10006)"
+          "port": "Port"
         }
       },
       "options": {
         "title": "Home Theater Direct",
-        "description": "Setup the gateway",
+        "description": "Choose a name for this device.",
         "data": {
           "device_name": "Device name"
         }
       }
     },
     "error": {
-      "no_connection": "Could not connect",
-      "missing_input": "Please fill in required fields"
+      "no_connection": "Could not connect to the HTD gateway",
+      "missing_input": "Please fill in all required fields"
     }
   },
   "options": {
@@ -29,14 +27,10 @@
       "init": {
         "title": "Configure Device",
         "data": {
-          "device_kind": "Type of device",
           "host": "Host name or IP Address",
-          "port": "Port (default is 10006)"
+          "port": "Port",
+          "device_name": "Device name"
         }
-      },
-      "options": {
-        "title": "Home Theater Direct",
-        "description": "Choose a name for this gateway."
       }
     }
   }

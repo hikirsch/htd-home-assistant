@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Home Theater Direct",
+        "description": "Enter your HTD gateway connection details.",
+        "data": {
+          "host": "Host name or IP Address",
+          "port": "Port"
+        }
+      },
+      "options": {
+        "title": "Home Theater Direct",
+        "description": "Choose a name for this device.",
+        "data": {
+          "device_name": "Device name"
+        }
+      }
+    },
+    "error": {
+      "no_connection": "Could not connect to the HTD gateway",
+      "missing_input": "Please fill in all required fields"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Device",
+        "data": {
+          "host": "Host name or IP Address",
+          "port": "Port",
+          "device_name": "Device name"
+        }
+      }
+    }
+  }
+}
