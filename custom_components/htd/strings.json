@@ -1,0 +1,180 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Home Theater Direct",
+        "description": "Enter your HTD gateway connection details.",
+        "data": {
+          "host": "Host name or IP Address",
+          "port": "Port"
+        }
+      },
+      "device": {
+        "title": "Device Setup",
+        "data": {
+          "device_name": "Device name",
+          "customize_names": "Customize zone and source names now"
+        },
+        "data_description": {
+          "customize_names": "You can update names at any time via Configure."
+        }
+      },
+      "zone_names": {
+        "title": "Zone Names",
+        "description": "Step 3 of 5 — Leave a field blank to use the controller's default name for that zone.",
+        "data": {
+          "zone_1_name": "Zone 1", "zone_2_name": "Zone 2", "zone_3_name": "Zone 3",
+          "zone_4_name": "Zone 4", "zone_5_name": "Zone 5", "zone_6_name": "Zone 6",
+          "zone_7_name": "Zone 7", "zone_8_name": "Zone 8", "zone_9_name": "Zone 9",
+          "zone_10_name": "Zone 10", "zone_11_name": "Zone 11", "zone_12_name": "Zone 12"
+        }
+      },
+      "source_names": {
+        "title": "Source Names",
+        "description": "Step 4 of 5 — Leave a field blank to use the controller's default name for that source.",
+        "data": {
+          "source_1_name": "Source 1", "source_2_name": "Source 2", "source_3_name": "Source 3",
+          "source_4_name": "Source 4", "source_5_name": "Source 5", "source_6_name": "Source 6",
+          "source_7_name": "Source 7", "source_8_name": "Source 8", "source_9_name": "Source 9",
+          "source_10_name": "Source 10", "source_11_name": "Source 11", "source_12_name": "Source 12",
+          "source_13_name": "Source 13", "source_14_name": "Source 14", "source_15_name": "Source 15",
+          "source_16_name": "Source 16", "source_17_name": "Source 17", "source_18_name": "Source 18",
+          "source_19_name": "Source 19"
+        }
+      },
+      "source_filter_toggle": {
+        "title": "Per-Zone Source Filtering",
+        "description": "Step 5 of 5 — Source filtering lets you control which sources appear in the source dropdown for each zone. This is a **whitelist** — only sources you check will be shown in that zone.\n\nBy default, filtering is disabled and all sources are visible on every zone. If you enable filtering below, you will be taken through each zone one at a time to configure its source list.\n\nYou can change this setting at any time via the integration's reconfigure option.",
+        "data": {
+          "source_filter_enabled": "Enable per-zone source filtering"
+        }
+      },
+      "zone_source_filter": {
+        "title": "Source Filter — {zone_name} (Zone {zone_number} of {zone_count})",
+        "description": "Check each source that should be visible in **{zone_name}**. Unchecked sources will be hidden from the source dropdown for this zone.\n\n**Note:** If all sources are checked, or all are unchecked, all sources will be shown for this zone.",
+        "data": {
+          "source_1_enabled": "Source 1", "source_2_enabled": "Source 2", "source_3_enabled": "Source 3",
+          "source_4_enabled": "Source 4", "source_5_enabled": "Source 5", "source_6_enabled": "Source 6",
+          "source_7_enabled": "Source 7", "source_8_enabled": "Source 8", "source_9_enabled": "Source 9",
+          "source_10_enabled": "Source 10", "source_11_enabled": "Source 11", "source_12_enabled": "Source 12",
+          "source_13_enabled": "Source 13", "source_14_enabled": "Source 14", "source_15_enabled": "Source 15",
+          "source_16_enabled": "Source 16", "source_17_enabled": "Source 17", "source_18_enabled": "Source 18",
+          "source_19_enabled": "Source 19"
+        },
+        "data_description": {
+          "source_1_enabled": "{source_1_label}", "source_2_enabled": "{source_2_label}", "source_3_enabled": "{source_3_label}",
+          "source_4_enabled": "{source_4_label}", "source_5_enabled": "{source_5_label}", "source_6_enabled": "{source_6_label}",
+          "source_7_enabled": "{source_7_label}", "source_8_enabled": "{source_8_label}", "source_9_enabled": "{source_9_label}",
+          "source_10_enabled": "{source_10_label}", "source_11_enabled": "{source_11_label}", "source_12_enabled": "{source_12_label}",
+          "source_13_enabled": "{source_13_label}", "source_14_enabled": "{source_14_label}", "source_15_enabled": "{source_15_label}",
+          "source_16_enabled": "{source_16_label}", "source_17_enabled": "{source_17_label}", "source_18_enabled": "{source_18_label}",
+          "source_19_enabled": "{source_19_label}"
+        }
+      }
+    },
+    "error": {
+      "no_connection": "Could not connect to the HTD gateway",
+      "missing_input": "Please fill in all required fields"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Device",
+        "description": "Step 1 of 4",
+        "data": {
+          "host": "Host name or IP Address",
+          "port": "Port",
+          "device_name": "Device name"
+        }
+      },
+      "zone_names": {
+        "title": "Zone Names",
+        "description": "Step 2 of 4 — Leave a field blank to use the controller's name. Clear an override to revert.",
+        "data": {
+          "zone_1_name": "Zone 1", "zone_2_name": "Zone 2", "zone_3_name": "Zone 3",
+          "zone_4_name": "Zone 4", "zone_5_name": "Zone 5", "zone_6_name": "Zone 6",
+          "zone_7_name": "Zone 7", "zone_8_name": "Zone 8", "zone_9_name": "Zone 9",
+          "zone_10_name": "Zone 10", "zone_11_name": "Zone 11", "zone_12_name": "Zone 12"
+        },
+        "data_description": {
+          "zone_1_name": "Controller: {zone_1_controller}",
+          "zone_2_name": "Controller: {zone_2_controller}",
+          "zone_3_name": "Controller: {zone_3_controller}",
+          "zone_4_name": "Controller: {zone_4_controller}",
+          "zone_5_name": "Controller: {zone_5_controller}",
+          "zone_6_name": "Controller: {zone_6_controller}",
+          "zone_7_name": "Controller: {zone_7_controller}",
+          "zone_8_name": "Controller: {zone_8_controller}",
+          "zone_9_name": "Controller: {zone_9_controller}",
+          "zone_10_name": "Controller: {zone_10_controller}",
+          "zone_11_name": "Controller: {zone_11_controller}",
+          "zone_12_name": "Controller: {zone_12_controller}"
+        }
+      },
+      "source_names": {
+        "title": "Source Names",
+        "description": "Step 3 of 4 — Leave a field blank to use the controller's name. Clear an override to revert.",
+        "data": {
+          "source_1_name": "Source 1", "source_2_name": "Source 2", "source_3_name": "Source 3",
+          "source_4_name": "Source 4", "source_5_name": "Source 5", "source_6_name": "Source 6",
+          "source_7_name": "Source 7", "source_8_name": "Source 8", "source_9_name": "Source 9",
+          "source_10_name": "Source 10", "source_11_name": "Source 11", "source_12_name": "Source 12",
+          "source_13_name": "Source 13", "source_14_name": "Source 14", "source_15_name": "Source 15",
+          "source_16_name": "Source 16", "source_17_name": "Source 17", "source_18_name": "Source 18",
+          "source_19_name": "Source 19"
+        },
+        "data_description": {
+          "source_1_name": "Controller: {source_1_controller}",
+          "source_2_name": "Controller: {source_2_controller}",
+          "source_3_name": "Controller: {source_3_controller}",
+          "source_4_name": "Controller: {source_4_controller}",
+          "source_5_name": "Controller: {source_5_controller}",
+          "source_6_name": "Controller: {source_6_controller}",
+          "source_7_name": "Controller: {source_7_controller}",
+          "source_8_name": "Controller: {source_8_controller}",
+          "source_9_name": "Controller: {source_9_controller}",
+          "source_10_name": "Controller: {source_10_controller}",
+          "source_11_name": "Controller: {source_11_controller}",
+          "source_12_name": "Controller: {source_12_controller}",
+          "source_13_name": "Controller: {source_13_controller}",
+          "source_14_name": "Controller: {source_14_controller}",
+          "source_15_name": "Controller: {source_15_controller}",
+          "source_16_name": "Controller: {source_16_controller}",
+          "source_17_name": "Controller: {source_17_controller}",
+          "source_18_name": "Controller: {source_18_controller}",
+          "source_19_name": "Controller: {source_19_controller}"
+        }
+      },
+      "source_filter_toggle": {
+        "title": "Per-Zone Source Filtering",
+        "description": "Step 4 of 4 — Source filtering lets you control which sources appear in the source dropdown for each zone. This is a **whitelist** — only sources you check will be shown in that zone.\n\nBy default, filtering is disabled and all sources are visible on every zone. If you enable filtering below, you will be taken through each zone one at a time to configure its source list.",
+        "data": {
+          "source_filter_enabled": "Enable per-zone source filtering"
+        }
+      },
+      "zone_source_filter": {
+        "title": "Source Filter — {zone_name} (Zone {zone_number} of {zone_count})",
+        "description": "Check each source that should be visible in **{zone_name}**. Unchecked sources will be hidden from the source dropdown for this zone.\n\n**Note:** If all sources are checked, or all are unchecked, all sources will be shown for this zone.",
+        "data": {
+          "source_1_enabled": "Source 1", "source_2_enabled": "Source 2", "source_3_enabled": "Source 3",
+          "source_4_enabled": "Source 4", "source_5_enabled": "Source 5", "source_6_enabled": "Source 6",
+          "source_7_enabled": "Source 7", "source_8_enabled": "Source 8", "source_9_enabled": "Source 9",
+          "source_10_enabled": "Source 10", "source_11_enabled": "Source 11", "source_12_enabled": "Source 12",
+          "source_13_enabled": "Source 13", "source_14_enabled": "Source 14", "source_15_enabled": "Source 15",
+          "source_16_enabled": "Source 16", "source_17_enabled": "Source 17", "source_18_enabled": "Source 18",
+          "source_19_enabled": "Source 19"
+        },
+        "data_description": {
+          "source_1_enabled": "{source_1_label}", "source_2_enabled": "{source_2_label}", "source_3_enabled": "{source_3_label}",
+          "source_4_enabled": "{source_4_label}", "source_5_enabled": "{source_5_label}", "source_6_enabled": "{source_6_label}",
+          "source_7_enabled": "{source_7_label}", "source_8_enabled": "{source_8_label}", "source_9_enabled": "{source_9_label}",
+          "source_10_enabled": "{source_10_label}", "source_11_enabled": "{source_11_label}", "source_12_enabled": "{source_12_label}",
+          "source_13_enabled": "{source_13_label}", "source_14_enabled": "{source_14_label}", "source_15_enabled": "{source_15_label}",
+          "source_16_enabled": "{source_16_label}", "source_17_enabled": "{source_17_label}", "source_18_enabled": "{source_18_label}",
+          "source_19_enabled": "{source_19_label}"
+        }
+      }
+    }
+  }
+}

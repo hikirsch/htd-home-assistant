@@ -1,5 +1,6 @@
 """Support for Home Theater Direct products"""
 
+import asyncio
 import logging
 
 import voluptuous as vol
@@ -8,8 +9,9 @@ from homeassistant.const import Platform, CONF_PORT, CONF_HOST, CONF_PATH, CONF_
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, discovery
 from htd_client import async_get_client
+from htd_client.constants import HtdDeviceKind
 
-from .const import DOMAIN, CONF_DEVICE_KIND, CONF_DEVICE_NAME
+from .const import DOMAIN, CONF_DEVICE_NAME
 from .utils import _async_cleanup_registry_entries
 
 PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
@@ -47,7 +49,6 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
         client = await async_get_client(
             serial_address=serial_address,
-            loop=hass.loop
         )
 
         unique_id = f"{client.model['name']}-{serial_address}"
@@ -74,10 +75,25 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
     client = await async_get_client(
         network_address=network_address,
-        loop=hass.loop
     )
 
     config_entry.runtime_data = client
+
+    source_count = client.get_source_count()
+    await asyncio.gather(*[
+        client.async_query_source_name(i)
+        for i in range(1, source_count + 1)
+    ])
+
+    if client.model.get("kind") == HtdDeviceKind.lync:
+        zone_count = client.get_zone_count()
+        try:
+            await asyncio.gather(*[
+                client.async_query_zone_name(z)
+                for z in range(1, zone_count + 1)
+            ])
+        except NotImplementedError:
+            _LOGGER.warning("Zone name queries not supported on this model")
 
     config_entry.async_on_unload(
         config_entry.add_update_listener(async_update_listener)
