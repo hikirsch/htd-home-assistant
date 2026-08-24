@@ -1,8 +1,9 @@
 MANUFACTURER = "Home Theater Direct"
 DOMAIN = "htd"
 
-CONF_DEVICE_KIND = 'device_kind'
 CONF_DEVICE_NAME = 'device_name'
-CONF_SOURCES = 'sources'
-CONF_RETRY_ATTEMPTS = 'retry_attempts'
-CONF_SOCKET_TIMEOUT = 'socket_timeout'
+CONF_ZONE_NAMES = "zone_names"
+CONF_SOURCE_NAMES = "source_names"
+CONF_CUSTOMIZE_NAMES = "customize_names"
+CONF_SOURCE_FILTER_ENABLED = "source_filter_enabled"
+CONF_ZONE_SOURCE_FILTERS = "zone_source_filters"
